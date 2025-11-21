@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 가상환경
+venv/
+env/
+whisper_env/
+.whisper_env/
+
+# VSCode
+.vscode/
+
+# 기타
+.DS_Store
