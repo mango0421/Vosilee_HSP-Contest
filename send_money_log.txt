@@ -1,0 +1,42 @@
+SYSTEM: 얼마를 송금하시겠습니까?
+USER:  Hinter야ucking umСТ
+SYSTEM: 누구에게 송금할까요?
+SYSTEM: 얼마를 송금하시겠습니까?
+USER:  엄마한테 5만원 손금해줘
+SYSTEM: 누구에게 송금할까요?
+USER:  엄마한테 성금해줘
+SYSTEM: 얼마를 송금하시겠습니까?
+USER:  5만 원 성금 하고 싶어
+SYSTEM: 누구에게 송금할까요?
+USER:  엄마한테 손금하고 싶어
+SYSTEM: 얼마를 송금하시겠습니까?
+USER:  5만 원 동금만 하고 싶어
+SYSTEM: 누구에게 송금할까요?
+USER:  엄마한테 하고 싶어
+SYSTEM: 얼마를 송금하시겠습니까?
+USER:  5만원 하고 싶어
+SYSTEM: 누구에게 송금할까요?
+USER:  엄마한테 하고 싶어
+SYSTEM: 송금 완료
+SYSTEM: 얼마를 송금하시겠습니까?
+USER:  061
+SYSTEM: 누구에게 송금할까요?
+USER:  엄마� attempts
+SYSTEM: 송금 완료
+SYSTEM: 얼마를 송금하시겠습니까?
+USER: 多麼更這樣子
+SYSTEM: 누구에게 송금할까요?
+USER:  no leaves
+LLM ERROR: {'error': {'message': 'No auth credentials found', 'code': 401}}
+SYSTEM (fallback):  no leaves에게 多麼更這樣子 송금하겠습니다.
+SYSTEM: 송금 완료
+SYSTEM: 송금 내용 입력 요청
+USER: 
+LLM BAD RESPONSE: {'error': {'message': 'No auth credentials found', 'code': 401}}
+SYSTEM (fallback): 받는 사람에게 금액 송금하겠습니다.
+SYSTEM: 송금 완료
+SYSTEM: 송금 내용 입력 요청
+USER: 
+LLM BAD RESPONSE: {'error': {'message': 'No auth credentials found', 'code': 401}}
+SYSTEM (fallback): 받는 사람에게 금액 송금하겠습니다.
+SYSTEM: 송금 완료

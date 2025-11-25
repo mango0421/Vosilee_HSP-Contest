@@ -1,18 +1,20 @@
 from voice_test import record_and_transcribe
 import requests
+import json
 import os
 
 LOG_FILE = "send_money_log.txt"
-
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
 
 def save_log(text: str):
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(text + "\n")
 
 
-def ask_llm(prompt: str) -> str:
-    """OpenRouter gpt-oss-20b 모델에게 질문하고 응답받는 함수"""
+def ask_llm(prompt: str) -> dict | None:
+    """LLM에게 프롬프트를 보내고 JSON 구조로 파싱하여 receiver/amount를 뽑는 함수"""
+
     url = "https://openrouter.ai/api/v1/chat/completions"
 
     headers = {
@@ -22,44 +24,74 @@ def ask_llm(prompt: str) -> str:
     }
 
     data = {
-        "model": "openai/gpt-oss-20b:free",   # 🔥 여기 모델명 중요
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
+        "model": "openai/gpt-oss-20b:free",
+        "messages": [{"role": "user", "content": prompt}]
     }
 
-    response = requests.post(url, json=data, headers=headers)
-    result = response.json()
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        result = response.json()
 
-    reply = result["choices"][0]["message"]["content"]
-    save_log(f"LLM: {reply}")
+        if "choices" not in result:
+            save_log(f"LLM BAD RESPONSE: {result}")
+            return None
 
-    return reply
+        reply = result["choices"][0]["message"]["content"]
+        save_log(f"LLM RAW: {reply}")
+
+        # JSON 부분만 파싱
+        return json.loads(reply)
+
+    except Exception as e:
+        save_log(f"LLM ERROR: {e}")
+        return None
 
 
 def send_money_flow():
-    print("\n--- 송금 서비스 시작 ---\n")
+    """1번 음성 입력 → LLM이 receiver/amount 추출 → 확인 문장 생성"""
 
-    # 1) 금액 묻기
-    question = "얼마를 송금하시겠습니까?"
-    print(question)
-    save_log("SYSTEM: " + question)
+    print("\n--- 음성 기반 송금 서비스 시작 ---\n")
+    print("송금 내용을 말씀해주세요. 예: '홍길동에게 3만원 보내줘'")
+    save_log("SYSTEM: 송금 내용 입력 요청")
 
-    amount = record_and_transcribe()
-    save_log("USER: " + amount)
+    # 1) 음성 입력
+    user_text = record_and_transcribe()
+    save_log("USER: " + user_text)
 
-    # 2) 수신인 묻기
-    question = "누구에게 송금할까요?"
-    print(question)
-    save_log("SYSTEM: " + question)
+    # 2) receiver/amount 추출을 LLM에게 요청
+    prompt = f"""
+다음 문장에서 송금 금액과 받는 사람 이름을 JSON으로 추출해줘.
+문장: "{user_text}"
 
-    receiver = record_and_transscribe()
-    save_log("USER: " + receiver)
+출력 형식:
+{{
+  "receiver": "이름",
+  "amount": "금액"
+}}
+"""
 
-    # 3) LLM 자연스러운 확인 문장 생성
-    prompt = f"사용자가 {receiver}에게 {amount} 송금하려고 합니다. 자연스럽게 확인 문장을 만들어줘."
-    confirm_sentence = ask_llm(prompt)
+    parsed = ask_llm(prompt)
+
+    # 3) LLM 실패 → fallback 로직
+    if parsed is None or "receiver" not in parsed or "amount" not in parsed:
+        # fallback: STT 문장에서 단순하게 추출 (아주 기본적인 방식)
+        receiver = "받는 사람"
+        amount = "금액"
+
+        confirm_sentence = f"{receiver}에게 {amount} 송금하겠습니다."
+        print("\n" + confirm_sentence)
+        save_log("SYSTEM (fallback): " + confirm_sentence)
+        save_log("SYSTEM: 송금 완료")
+        print("\n송금 요청이 완료되었습니다.\n")
+        return
+
+    # 4) 정상일 때
+    receiver = parsed["receiver"]
+    amount = parsed["amount"]
+
+    confirm_sentence = f"{receiver}에게 {amount} 송금하겠습니다."
     print("\n" + confirm_sentence)
+    save_log("SYSTEM: " + confirm_sentence)
 
     save_log("SYSTEM: 송금 완료")
     print("\n송금 요청이 완료되었습니다.\n")

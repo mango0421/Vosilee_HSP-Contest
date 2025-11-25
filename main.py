@@ -1,4 +1,4 @@
-from voice_test import record_and_transscribe
+from voice_test import record_and_transcribe
 from keyword_matching import parse_text_to_json, classify_keyword
 from Transcript import show_transcript
 from send_money import send_money_flow   # 🔥 ① 송금 기능 import
@@ -32,7 +32,7 @@ def route_action(result: dict):
 
 def main():
     print("\n🎤 음성 인식 시작\n")
-    text = record_and_transscribe()
+    text = record_and_transcribe()
 
     print(f"📌 STT 결과: {text}\n")
 
