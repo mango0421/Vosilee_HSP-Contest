@@ -1,6 +1,7 @@
-from voice_test import record_and_transcribe
+from voice_test import record_and_transscribe
 from keyword_matching import parse_text_to_json, classify_keyword
 from Transcript import show_transcript
+from send_money import send_money_flow   # 🔥 ① 송금 기능 import
 
 
 def route_action(result: dict):
@@ -12,6 +13,14 @@ def route_action(result: dict):
 
     if status == "ok":
         page = result["page"]
+        
+        # 🔥 ② 송금 / 이체 페이지로 가는 경우 send_money_flow 호출
+        if page in ["remittance_page", "transfer_page"]:
+            print("\n➡ 송금/이체 기능으로 이동합니다.\n")
+            send_money_flow()
+            return
+
+        # 그 외 금융업무 페이지
         print(f"\n➡ 정상 금융 키워드 감지: {result['keyword']}")
         print(f"➡ {page} 기능으로 이동합니다.\n")
         return
@@ -23,11 +32,11 @@ def route_action(result: dict):
 
 def main():
     print("\n🎤 음성 인식 시작\n")
-    text = record_and_transcribe()
+    text = record_and_transscribe()
 
     print(f"📌 STT 결과: {text}\n")
 
-    # 사용자가 “기록”이라고 말한 경우
+    # 🔥 ③ “기록” 명령 처리
     if "기록" in text.replace(" ", ""):
         print("\n📑 기록 조회 기능 실행\n")
         show_transcript()
@@ -39,6 +48,7 @@ def main():
     classify_result = classify_keyword(text)
     print("📌 키워드 분류 결과:", classify_result, "\n")
 
+    # 🔥 ④ route_action() 으로 전체 흐름 분기 처리
     route_action(classify_result)
 
 
