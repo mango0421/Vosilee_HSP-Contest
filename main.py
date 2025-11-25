@@ -1,45 +1,45 @@
 from voice_test import record_and_transcribe
 from keyword_matching import parse_text_to_json, classify_keyword
+from Transcript import show_transcript
 
 
-def route_page(result: dict):
-    """키워드 결과에 따라 페이지 이동 또는 재질문 처리"""
-    if result["status"] == "danger":
-        print("⚠ 위험 금융어 감지됨. 다시 말씀해주세요.")
-        return None
+def route_action(result: dict):
+    status = result["status"]
 
-    if result["status"] == "ok":
-        print(f"→ {result['page']} 로 이동합니다.")
-        return result["page"]
+    if status == "danger":
+        print("\n⚠ 위험 금융어 탐지됨 → 보이스피싱 의심, 추가 본인 확인 필요\n")
+        return
 
-    print("관련 금융어를 찾지 못했어요. 다시 말해주세요.")
-    return None
+    if status == "ok":
+        page = result["page"]
+        print(f"\n➡ 정상 금융 키워드 감지: {result['keyword']}")
+        print(f"➡ {page} 기능으로 이동합니다.\n")
+        return
+
+    if status == "unknown":
+        print("\n🤔 인식된 키워드가 없습니다. 다시 말해주세요.\n")
+        return
 
 
 def main():
-    print("음성 인식 시스템 시작")
+    print("\n🎤 음성 인식 시작\n")
+    text = record_and_transcribe()
 
-    while True:
-        input("Press Enter to record...")
+    print(f"📌 STT 결과: {text}\n")
 
-        # 1) 음성 인식
-        text = record_and_transcribe()
-        print("Recognized:", text)
+    # 사용자가 “기록”이라고 말한 경우
+    if "기록" in text.replace(" ", ""):
+        print("\n📑 기록 조회 기능 실행\n")
+        show_transcript()
+        return
 
-        # 2) JSON 파싱
-        json_data = parse_text_to_json(text)
-        print("JSON:", json_data)
+    parsed_json = parse_text_to_json(text)
+    print("📌 JSON:", parsed_json, "\n")
 
-        # 3) 키워드 분류
-        result = classify_keyword(text)
-        print("Result:", result)
+    classify_result = classify_keyword(text)
+    print("📌 키워드 분류 결과:", classify_result, "\n")
 
-        # 4) 페이지 이동 처리
-        page = route_page(result)
-
-        if page:
-            print(f"*** [{page}] 페이지 로직 실행 ***")
-            break
+    route_action(classify_result)
 
 
 if __name__ == "__main__":
