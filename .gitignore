@@ -15,3 +15,8 @@ whisper_env/
 
 # 기타
 .DS_Store
+
+#녹음파일들은 무시
+recordings/
+*.wav
+transcript_log.txt
