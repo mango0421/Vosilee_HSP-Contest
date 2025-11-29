@@ -9,9 +9,7 @@ SEND_MONEY_LOG = "send_money_log.txt"
 RECORDING_DIR = "recordings"
 
 
-# -----------------------------------------------------------
 # 녹음 파일 목록 가져오기
-# -----------------------------------------------------------
 def list_audio_files():
     if not os.path.exists(RECORDING_DIR):
         return []
@@ -21,9 +19,8 @@ def list_audio_files():
     ])
 
 
-# -----------------------------------------------------------
+
 # transcript_log.txt 읽기
-# -----------------------------------------------------------
 def read_transcript_log():
     if not os.path.exists(TRANSCRIPT_LOG):
         return []
@@ -31,10 +28,7 @@ def read_transcript_log():
         logs = f.readlines()
     return [line.strip() for line in logs]
 
-
-# -----------------------------------------------------------
 # send_money_log.txt 읽기
-# -----------------------------------------------------------
 def read_sendmoney_log():
     if not os.path.exists(SEND_MONEY_LOG):
         return []
@@ -43,14 +37,13 @@ def read_sendmoney_log():
     return [line.strip() for line in logs]
 
 
-# -----------------------------------------------------------
+
 # 파일명에서 날짜/시간/키워드 추출
-# recordings/2025-11-25_14-20-10_송금.wav
-# -----------------------------------------------------------
+# recordings/year-month-Date_hour-minute-second_name.wav
 def parse_record_filename(filename: str):
     try:
         base = filename.replace(".wav", "")
-        # 2025-11-25_14-20-10_송금
+        # year-month-Date_hour-minute-second_name
         date_str, time_str, keyword = base.split("_", 2)
         datetime_str = f"{date_str} {time_str.replace('-', ':')}"
         return datetime_str, keyword
@@ -58,9 +51,8 @@ def parse_record_filename(filename: str):
         return None, None
 
 
-# -----------------------------------------------------------
+
 # 전체 기록 출력
-# -----------------------------------------------------------
 def show_transcript():
     print("\n==============================")
     print(" 🎧 녹음 파일 기록")
