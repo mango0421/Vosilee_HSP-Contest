@@ -40,3 +40,14 @@ USER:
 LLM BAD RESPONSE: {'error': {'message': 'No auth credentials found', 'code': 401}}
 SYSTEM (fallback): 받는 사람에게 금액 송금하겠습니다.
 SYSTEM: 송금 완료
+SYSTEM: 송금 내용 입력 요청
+USER: 엄마한테ому 엄마한테 Onu
+LLM RAW: ```json
+{
+  "receiver": "엄마",
+  "amount": null
+}
+```
+LLM ERROR: Expecting value: line 1 column 1 (char 0)
+SYSTEM (fallback): 받는 사람에게 금액 송금하겠습니다.
+SYSTEM: 송금 완료

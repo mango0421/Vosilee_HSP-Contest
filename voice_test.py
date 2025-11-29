@@ -4,6 +4,8 @@ import whisper
 import uuid
 import os
 from datetime import datetime
+from keyword_matching import classify_keyword
+
 
 # Whisper 모델 로드
 model = whisper.load_model("base")
@@ -72,3 +74,6 @@ def record_and_transcribe(seconds: int = 4, fs: int = 16000) -> str:
 if __name__ == "__main__":
     text = record_and_transcribe()
     print("STT 결과:", text)
+
+    result = classify_keyword(text)
+    print("분류 결과:", result)

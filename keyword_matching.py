@@ -1,17 +1,17 @@
-import json
+import numpy as np
+from embeddings import get_embedding
 
-# 1. 대표 금융 키워드 및 페이지 매핑 (6가지로 확장)
+# 1. 대표 금융 키워드 및 페이지 매핑
 FINANCE_KEYWORDS = {
     "잔액 조회": "balance_page",
     "이체": "transfer_page",
     "송금": "remittance_page",
     "예금": "deposit_page",
     "적금": "saving_page",
-    "상담": "consulting_page"
+    "상담": "consulting_page",
 }
 
-# 2. 발음 오류 / 오인식 / 유사 단어 보정 테이블 (대폭 보강)
-# 주의: classify_keyword 함수에서 공백을 제거하므로, 여기 있는 단어들도 공백 없이 작성해야 정확도가 높습니다.
+# 2. 발음 오류 / 오인식 / 유사 단어 보정 테이블
 NORMALIZE_MAP = {
     "잔액 조회": [
         "잔액", "자낵", "잔애", "잔핵", "잔엑", "잔고", "통장정리",
@@ -22,82 +22,117 @@ NORMALIZE_MAP = {
         "돈옴겨", "돈옮겨", "이치", "이채해"
     ],
     "송금": [
-        "송금", "숑금", "송굼", "성금", "손금", "송그", 
+        "송금", "숑금", "송굼", "성금", "손금", "송그",
         "보내줘", "보내기", "부쳐", "붙여", "붗여", "돈보내", "입금해"
     ],
     "예금": [
-        "예금", "얘금", "예김", "얘김", "애금", "여금", "예그", 
+        "예금", "얘금", "예김", "얘김", "애금", "여금", "예그",
         "거치", "목돈", "맞길래", "맡길래", "예치"
     ],
     "적금": [
-        "적금", "적끔", "젇금", "조금", "저금", "저끔", 
+        "적금", "적끔", "젇금", "조금", "저금", "저끔",
         "붓는거", "부을래", "매달", "적립"
     ],
     "상담": [
-        "상담", "상당", "산담", "쌍담", "샹담", 
+        "상담", "상당", "산담", "쌍담", "샹담",
         "문의", "질문", "고객센터", "도와줘", "연결", "직원", "어려워", "모르겠어"
-    ]
+    ],
 }
 
-# 3. 위험 단어 (금융사기 의심 등)
+# 3. 위험 단어
 RISK_KEYWORDS = ["담보", "대출", "보증", "해지", "비밀번호", "검찰", "경찰"]
 
 
-def normalize_keyword(text: str) -> str | None:
-    """
-    입력된 텍스트(공백 제거됨)에 변형된 키워드가 포함되어 있는지 확인하여
-    대표 키워드를 반환합니다.
-    """
+# ---------------------------
+# 4. 임베딩 기반 레퍼런스 DB
+# ---------------------------
+REFERENCE_DB: list[dict] = []
+REF_MATRIX: np.ndarray | None = None
+
+
+def _build_reference_db():
+    global REFERENCE_DB, REF_MATRIX
+    entries = []
+
     for canonical, variants in NORMALIZE_MAP.items():
-        for v in variants:
-            if v in text:
-                return canonical
-    return None
+        for phrase in variants:
+            clean_phrase = phrase.replace(" ", "")
+            emb = get_embedding(clean_phrase)
+            entries.append({
+                "keyword": canonical,
+                "phrase": phrase,
+                "embedding": emb,
+            })
+
+    REFERENCE_DB = entries
+    REF_MATRIX = np.vstack([e["embedding"] for e in entries])
+
+
+def _softmax(x: np.ndarray) -> np.ndarray:
+    x = x - np.max(x)
+    exps = np.exp(x)
+    return exps / np.sum(exps)
+
+
+# DB 초기 빌드
+_build_reference_db()
 
 
 def classify_keyword(text: str) -> dict:
-    # 1. 공백 제거 (매칭 정확도를 위해)
     clean_text = text.replace(" ", "")
 
-    # 2. 위험 금융어 먼저 체크
+    # 0) 위험 키워드 먼저 체크
     for risk in RISK_KEYWORDS:
         if risk in clean_text:
             return {
                 "status": "danger",
                 "keyword": risk,
-                "message": "⚠️ 위험 금융어 감지됨. 상담원 연결 또는 주의 필요."
+                "message": "⚠️ 위험 금융어 감지됨. 상담원 연결 또는 주의 필요.",
             }
 
-    # 3. 정상 금융어: 발음 변형 → 정규 키워드 보정
-    normalized = normalize_keyword(clean_text)
+    # 1) NORMALIZE_MAP 문자열 기반 즉시 매칭 (우선 처리)
+    for canonical, variants in NORMALIZE_MAP.items():
+        for v in variants:
+            if v in clean_text:
+                return {
+                    "status": "ok",
+                    "keyword": canonical,
+                    "page": FINANCE_KEYWORDS[canonical],
+                    "probability": 1.0,
+                    "matched_phrase": v,
+                    "message": f"'{canonical}' 기능으로 이동합니다. (정확 매칭)"
+                }
 
-    if normalized:
+    # 2) 문자열 매칭 실패 → 벡터 기반 비교
+    q_emb = get_embedding(clean_text)
+    scores = REF_MATRIX @ q_emb
+
+    k = 5
+    top_idx = np.argsort(-scores)[:k]
+    top_scores = scores[top_idx]
+    probs = _softmax(top_scores)
+
+    best_idx = top_idx[0]
+    best_prob = float(probs[0])
+    best_entry = REFERENCE_DB[best_idx]
+
+    # 3) 확률 기준 조정 (0.55 → 0.30)
+    THRESHOLD = 0.30
+    if best_prob < THRESHOLD:
         return {
-            "status": "ok",
-            "keyword": normalized,
-            "page": FINANCE_KEYWORDS[normalized],
-            "message": f"'{normalized}' 기능으로 이동합니다."
+            "status": "retry",
+            "keyword": None,
+            "probability": best_prob,
+            "message": "요청을 정확히 이해하기 어렵습니다. 다시 말씀해 주세요.",
         }
 
-    # 4. 아무 키워드도 없는 경우
+    # 4) 벡터 기반 정상 분류
+    keyword = best_entry["keyword"]
     return {
-        "status": "unknown",
-        "keyword": None,
-        "message": "죄송합니다. 원하시는 금융 업무를 다시 말씀해 주세요."
+        "status": "ok",
+        "keyword": keyword,
+        "page": FINANCE_KEYWORDS[keyword],
+        "probability": best_prob,
+        "matched_phrase": best_entry["phrase"],
+        "message": f"'{keyword}' 기능으로 이동합니다.",
     }
-
-# --- 테스트 실행 코드 ---
-if __name__ == "__main__":
-    test_sentences = [
-        "내 통장에 얼마 있니",       # 잔액 조회 (얼마)
-        "친구한테 돈좀 부쳐줘",      # 송금 (부쳐)
-        "적끔 하나 들고 싶어",       # 적금 (적끔)
-        "상당원 연결해줘",          # 상담 (상당)
-        "계좌 이채 할래",           # 이체 (이채)
-        "대출 상담 받고 싶어",       # 위험 (대출) -> 주의: '상담'보다 '대출'이 먼저 걸림
-    ]
-
-    for sent in test_sentences:
-        print(f"입력: {sent}")
-        print(f"결과: {classify_keyword(sent)}")
-        print("-" * 30)
