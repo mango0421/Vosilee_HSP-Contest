@@ -43,9 +43,8 @@ NORMALIZE_MAP = {
 RISK_KEYWORDS = ["담보", "대출", "보증", "해지", "비밀번호", "검찰", "경찰"]
 
 
-# ---------------------------
+
 # 4. 임베딩 기반 레퍼런스 DB
-# ---------------------------
 REFERENCE_DB: list[dict] = []
 REF_MATRIX: np.ndarray | None = None
 
@@ -116,7 +115,7 @@ def classify_keyword(text: str) -> dict:
     best_prob = float(probs[0])
     best_entry = REFERENCE_DB[best_idx]
 
-    # 3) 확률 기준 조정 (0.55 → 0.30)
+    # 3) 확률 기준 조정 
     THRESHOLD = 0.30
     if best_prob < THRESHOLD:
         return {

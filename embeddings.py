@@ -7,7 +7,6 @@ _model = None
 def _get_model():
     global _model
     if _model is None:
-        # 한국어 잘 되는 다국어 모델
         _model = SentenceTransformer("jhgan/ko-sroberta-multitask")
     return _model
 
